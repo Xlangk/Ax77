@@ -242,7 +242,7 @@ int main(int argc, char *argv[]) {
 
     printf("Ax77 Advanced Virtual Machine\n");
     printf("-- Clock speed detect, %d hz\n", clk);
-    printf("-- Memory width detect, %d bytes\n", mbt);
+    printf("-- Memory width detect, %d addresses\n", mbt);
     printf("-- 8 bit registers detect, %d sections\n", reg8);
     printf("-- 16 bit registers detect, %d sections\n", reg16);
 
