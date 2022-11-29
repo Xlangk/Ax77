@@ -10,10 +10,12 @@
 #include <fstream>
 
 // Clock speed hz
-int clk = 1000000;
+int clk = 5;
 
 // Memory height in bytes
 const int mbt = 3;
+
+uint64_t pct; // program counter
 
 // Register rows
 int reg8 = 10;
@@ -158,18 +160,75 @@ void work() {
             }
         }
 
+    else if (command == "set-c")
+        if (args->length() < 2)
+            std::cout << "Expected 1 argument, {value}, got " << args->length() << std::endl;
+        else {
+            // set the clock speed
+            try {
+                int valueAsInt = std::stoi(args[1]);
+                if (valueAsInt > 1000000) std::cout << "Value " << valueAsInt << " is too large\n";
+                else {
+                    clk = valueAsInt;
+                }
+            } catch (...) {
+                std::cout << "Invalid value\n";
+            }
+        }
+
+    else if (command == "jmp")
+        if (args->length() < 2)
+            std::cout << "Expected 1 argument, {address}, got " << args->length() << std::endl;
+        else {
+            // jump to address
+            try {
+                int valueAsInt = std::stoi(args[1]);
+                if (valueAsInt > 65535) std::cout << "Value " << valueAsInt << " is too large\n";
+                else {
+                    pct = valueAsInt;
+                }
+            } catch (...) {
+                std::cout << "Invalid value\n";
+            }
+        }
+
     else if (command == "exit" || command == "halt" || command == "quit")
         std::cout << "Did you mean 'kill'?\n";
     else
         std::cout << "Unknown command: " << command << std::endl;
 }
 
+std::string to8bithexstring(std::string binaryString256bit) {
+    // Take in an input string that is 256 chars long and contains 1s and 0s, convert it into a hexadecimal view that is spaced out every 2 hex digits.
+    // Example output: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+    std::string output = "";
+    for (int i = 0; i < 256; i += 8) {
+        std::string temp = binaryString256bit.substr(i, 8);
+        int decimal = std::stoi(temp, nullptr, 2);
+
+        std::stringstream stream;
+        stream << std::hex << decimal;
+        std::string result(stream.str());
+        if (result.length() == 1) result = "0" + result;
+        output += result + " ";
+    }
+    return output;
+}
+
 void installProgramBootLoader() {
     // legend: [RAM_WIDTH=256bits, RAM_HEIGHT=2^256]
     // OPCODES (DECIMAL) [OPCODE_BIT_WIDTH=32bits]
-    // 0: HLT
-    // 1: NOP
-    // 2: JMP (L Value) [ADDRESS]
+    // 0: HLT: Halt the CPU.
+    // 1: NOP: Do no operation.
+    // 2: JMP (L Value) [ADDRESS 224]: Jump to a specific memory address.
+
+    // 3: JIO (L Value) [ADDRESS 224]: Jump to a specific memory address if there is an ALU overflow.
+    // 4: JIZ (L Value) [ADDRESS 224]: Jump to a specific memory address if there is an ALU zero result.
+    // 5: JIN (L Value) [ADDRESS 224]: Jump to a specific memory address if there is an ALU negative result.
+    // 6: JEQ (L Value, R Value, OPERAND) [FIRST_REGISTER 32, SECOND_REGISTER 32, ADDRESS 160]: Jump to a specific memory address if two registers are equal.
+    // 7: JNQ (L Value, R Value, OPERAND) [FIRST_REGISTER 32, SECOND_REGISTER 32, ADDRESS 160]: Jump to a specific memory address if two registers are NOT equal.
+
+    // 8: MOV (L Value, OPERAND) [REGISTER, NUMBER]: Move a value into a CPU register.
 
     executableByteData = new char*[mbt];
 
@@ -250,13 +309,13 @@ int main(int argc, char *argv[]) {
 //    installProgramBootLoader();
     loadProgramBootLoader();
     printf("-- Program execution started from bootloader at instruction 0x0 in memory sections\n");
-    printf("-- First binary record: %s\n", executableByteData[0]);
+    printf("-- First binary record: %s\n", to8bithexstring(executableByteData[0]).c_str());
 
     std::thread cpu([&] () {
         std::string rec;
         std::string ins;
 
-        uint64_t pct = 0; // program counter
+        pct = 0; // program counter
 
         while (true) {
             std::this_thread::sleep_for(std::chrono::milliseconds(1000 / clk));
@@ -284,7 +343,9 @@ int main(int argc, char *argv[]) {
             else if (ins == "00000000000000000000000000000010") {
                 std::string addr = rec.substr(32, 256 - 32);
                 pct = std::bitset<256 - 32>(addr).to_ulong();
-                printf("[!] --> CPU ran instruction to jump to address %lu\n", pct);
+//                printf("[!] --> CPU ran instruction to jump to address %lu\n", pct);
+//                printf("-- Current instruction, jumping from %s\n", to8bithexstring(rec).c_str());
+//                printf("-- Jumping instruction to %s\n", to8bithexstring(executableByteData[pct]).c_str());
                 continue;
             }
 
