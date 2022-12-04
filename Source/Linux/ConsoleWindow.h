@@ -22,7 +22,7 @@ class ConsoleWindow {
     std::thread *m_thread;
 
 public:
-    ConsoleWindow();
+    ConsoleWindow(int w, int h);
 
     bool setWindowState(bool enable);
     bool write(const std::string &str);
@@ -37,5 +37,12 @@ public:
     int* getGfxBuffer() { return m_gfxBuffer; }
 
     void generateGrid(int colorX, int colorY, int dashLengthAndSpacingX, int dashLengthAndSpacingY, int divisionX, int divisionY, int delayX, int delayY);
+
+    int width();
+    int height();
+
+    void insImage(int x, int y, int w, int h, bool *data, int color);
+
+    void placeText(int x, int y, int size, int color, const std::string& text);
 };
 }
